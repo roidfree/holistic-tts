@@ -8,22 +8,12 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-  // Inject content script into the page if not already loaded
-  try {
-    await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      files: ['content.js']
-    });
-  } catch (e) {
-    console.error('[Holistic-TTS] Failed to inject content script:', e);
-  }
-
-  if (info.menuItemId === "read-selected-text" && info.selectionText) {
+  if (info.menuItemId === "read-selected-text" && info.selectionText && tab.id) {
     // Fetch user TTS preferences
-    const prefs = await getPrefs(["ttsService", "ttsVoiceURI"]);
+    const prefs = await chrome.storage.sync.get(["ttsService", "ttsVoiceURI"]);
     const ttsService = prefs.ttsService || "webSpeech";
+
     if (ttsService === "webSpeech") {
-      // Send to content script for Web Speech API
       chrome.tabs.sendMessage(
         tab.id,
         {
@@ -31,19 +21,17 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
           text: info.selectionText,
           voiceURI: prefs.ttsVoiceURI || null
         },
-        (response) => {
+        () => {
           if (chrome.runtime.lastError) {
-            console.warn('[Holistic-TTS] Could not send Web Speech TTS request to content script:', chrome.runtime.lastError.message);
+            console.warn('[Holistic-TTS] Could not send Web Speech TTS request:', chrome.runtime.lastError.message);
           }
         }
       );
     } else if (ttsService === "humeAI") {
       handleHumeAIRequest(info.selectionText);
-      // Handle ElevenLabs
     } else if (ttsService === "elevenLabs") {
       handleElevenLabsRequest(info.selectionText);
     } else {
-      // Future: handle other services
       console.warn(`[Holistic-TTS] Unsupported TTS service: ${ttsService}`);
     }
   }

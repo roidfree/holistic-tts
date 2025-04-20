@@ -90,8 +90,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       try {
         audio.play();
       } catch (err) {
-        console.error("[Holistic-TTS] audio playback failed:", err);
+        console.error('[Holistic-TTS] audio playback failed:', err);
       }
     });
   }
+  // Always respond to avoid message port warnings
+  sendResponse();
+  // If any async operation is present, return true (safe default)
+  return true;
 });

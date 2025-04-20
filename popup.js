@@ -88,24 +88,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (selectedService === 'webSpeech') {
              voiceSelect.disabled = false;
-             // ... (existing WebSpeech voice loading) ...
-             if (speechSynthesis.getVoices().length > 0) {
+             // Always set up onvoiceschanged to restore savedVoiceURI after async load
+             speechSynthesis.onvoiceschanged = () => {
                  voices = speechSynthesis.getVoices();
-                 // Only show 'Natural' voices
                  const naturalVoices = voices.filter(v =>
                      v.name.toLowerCase().includes('natural') || (v.voiceURI && v.voiceURI.toLowerCase().includes('natural'))
                  );
                  renderVoiceOptions(naturalVoices, savedVoiceURI);
-             } else {
-                 speechSynthesis.onvoiceschanged = () => {
-                     voices = speechSynthesis.getVoices();
-                     // Only show 'Natural' voices
-                     const naturalVoices = voices.filter(v =>
-                         v.name.toLowerCase().includes('natural') || (v.voiceURI && v.voiceURI.toLowerCase().includes('natural'))
-                     );
-                     renderVoiceOptions(naturalVoices, savedVoiceURI);
-                 };
-             }
+             };
+             // Always call onvoiceschanged, even if voices are loaded, to ensure consistency
+             speechSynthesis.onvoiceschanged();
         } else if (selectedService === 'humeAI') {
             // Hume AI doesn't have a standard voice *listing* API in the same way
             // We can create/save voices, but listing all isn't typical.
@@ -184,13 +176,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!foundSaved && voiceSelect.options.length > 0) {
              voiceSelect.options[0].selected = true;
-             if (savedVoiceURI) {
-                 savePreference(PREF_VOICE_URI, voiceSelect.value);
-             }
         }
-         if (!savedVoiceURI && voiceSelect.value) {
-             savePreference(PREF_VOICE_URI, voiceSelect.value);
-         }
+        // Only savePreference if there was no savedVoiceURI at all
+        if (!savedVoiceURI && voiceSelect.value) {
+            savePreference(PREF_VOICE_URI, voiceSelect.value);
+        }
     }
 
     // --- UI Update Function ---
@@ -249,7 +239,16 @@ document.addEventListener('DOMContentLoaded', () => {
         stopAllPlayback(); // Stop anything currently playing
 
         if (selectedService === 'webSpeech') {
-             speakWebSpeech(text);
+            // Instead of speaking here, send a message to the content script to read the selection
+            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                if (tabs[0].id) {
+                    chrome.tabs.sendMessage(
+                        tabs[0].id,
+                        { action: 'readSelection', voiceURI: voiceSelect.value },
+                        () => {} // Optional callback
+                    );
+                }
+            });
         } else if (selectedService === 'humeAI') {
             speakWithHumeAI(text);
         } else if (selectedService === 'elevenLabs') {
@@ -370,32 +369,53 @@ async function speakWithElevenLabs(text) {
     });
 
     // Voice Service Selection Change
+    let previousService = voiceServiceSelect.value;
     voiceServiceSelect.addEventListener('change', () => {
         const selectedService = voiceServiceSelect.value;
+        // Save the current voice selection for the previous service before switching
+        if (previousService === 'webSpeech') {
+            savePreference(PREF_VOICE_URI, voiceSelect.value);
+        } else if (previousService === 'elevenLabs') {
+            savePreference(PREF_ELEVEN_VOICE_ID, voiceSelect.value);
+        } else if (previousService === 'humeAI') {
+            savePreference(PREF_HUME_VOICE_ID, voiceSelect.value);
+        }
         savePreference(PREF_SERVICE, selectedService);
         updateUIForService(selectedService);
-        populateVoiceList(); // Reload voices for the new service
+        // Load the correct voice for the new service
+        storage.get([PREF_VOICE_URI, PREF_HUME_VOICE_ID, PREF_ELEVEN_VOICE_ID], (result) => {
+            let savedVoiceURI = null, savedHumeVoiceId = null, savedElevenVoiceId = null;
+            if (selectedService === 'webSpeech') {
+                savedVoiceURI = result[PREF_VOICE_URI];
+            } else if (selectedService === 'humeAI') {
+                savedHumeVoiceId = result[PREF_HUME_VOICE_ID];
+            } else if (selectedService === 'elevenLabs') {
+                savedElevenVoiceId = result[PREF_ELEVEN_VOICE_ID];
+            }
+            populateVoiceList(savedVoiceURI, savedHumeVoiceId, savedElevenVoiceId);
+        });
+        previousService = selectedService;
         // Stop any ongoing speech handled within updateUIForService
     });
 
-    // Voice Selection Change (Only relevant for WebSpeech currently)
+    // Voice Selection Change (now for all providers)
     voiceSelect.addEventListener('change', () => {
-         const selectedService = voiceServiceSelect.value;
-         if (selectedService === 'webSpeech') {
+        const selectedService = voiceServiceSelect.value;
+        if (selectedService === 'webSpeech') {
             savePreference(PREF_VOICE_URI, voiceSelect.value);
             // If speaking, stop and restart with new voice (optional)
             if (speechSynthesis.speaking) {
-                 const text = currentUtterance ? currentUtterance.text : textInput.value.trim();
-                 speechSynthesis.cancel();
-                 if (text) speakWebSpeech(text); // Restart with new voice
+                const text = currentUtterance ? currentUtterance.text : textInput.value.trim();
+                speechSynthesis.cancel();
+                if (text) speakWebSpeech(text); // Restart with new voice
             }
-         } else if (selectedService === 'humeAI') {
-             // If we implement Hume voice selection, save PREF_HUME_VOICE_ID here
-             // savePreference(PREF_HUME_VOICE_ID, voiceSelect.value);
-         } else if (selectedService === 'elevenLabs') {
-             // Save selected ElevenLabs voice ID
-             savePreference(PREF_ELEVEN_VOICE_ID, voiceSelect.value);
-         }
+        } else if (selectedService === 'humeAI') {
+            // Save selected Hume voice ID (future-proofing)
+            savePreference(PREF_HUME_VOICE_ID, voiceSelect.value);
+        } else if (selectedService === 'elevenLabs') {
+            // Save selected ElevenLabs voice ID
+            savePreference(PREF_ELEVEN_VOICE_ID, voiceSelect.value);
+        }
     });
 
     // Save API Key Button
@@ -546,6 +566,7 @@ async function speakWithElevenLabs(text) {
     }
 
     // --- Web Speech Synthesis Function ---
+    // Only used for text entered in the popup, not for reading page selection
     function speakWebSpeech(text) {
         if (speechSynthesis.speaking) {
             console.warn('SpeechSynthesis is already speaking. Cancelling previous.');
