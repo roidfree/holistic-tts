@@ -34,9 +34,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Load Preferences ---
     function loadPreferences() {
+        console.log("Loading preferences...");
         storage.get(
             [PREF_SPEED, PREF_SERVICE, PREF_VOICE_URI, PREF_HUME_VOICE_ID, PREF_API_KEY_HUME, PREF_API_KEY_ELEVEN],
             (result) => {
+                console.log("Loaded preferences:", result);
+                
                 // Set Speed
                 const savedSpeed = result[PREF_SPEED] || 1.0;
                 speedSlider.value = savedSpeed;
@@ -86,11 +89,19 @@ document.addEventListener('DOMContentLoaded', () => {
              // ... (existing WebSpeech voice loading) ...
              if (speechSynthesis.getVoices().length > 0) {
                  voices = speechSynthesis.getVoices();
-                 renderVoiceOptions(voices.filter(v => !v.voiceURI.includes('google')), savedVoiceURI);
+                 // Only show 'Natural' voices
+                 const naturalVoices = voices.filter(v =>
+                     v.name.toLowerCase().includes('natural') || (v.voiceURI && v.voiceURI.toLowerCase().includes('natural'))
+                 );
+                 renderVoiceOptions(naturalVoices, savedVoiceURI);
              } else {
                  speechSynthesis.onvoiceschanged = () => {
                      voices = speechSynthesis.getVoices();
-                     renderVoiceOptions(voices.filter(v => !v.voiceURI.includes('google')), savedVoiceURI);
+                     // Only show 'Natural' voices
+                     const naturalVoices = voices.filter(v =>
+                         v.name.toLowerCase().includes('natural') || (v.voiceURI && v.voiceURI.toLowerCase().includes('natural'))
+                     );
+                     renderVoiceOptions(naturalVoices, savedVoiceURI);
                  };
              }
         } else if (selectedService === 'humeAI') {
@@ -479,12 +490,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         speechSynthesis.speak(currentUtterance);
     }
-    // Handle other messages if needed
-    return true;
-    loadPreferences(); // Load saved settings when popup opens
 
+    // Load preferences when the DOM content is loaded
+    loadPreferences();
 });
-
-// TODO: Add listeners for PDF upload, snippet button, download button, API key saving
-// TODO: Add logic for chrome.storage to save/load preferences
-// TODO: Add communication with background.js for context menu text
