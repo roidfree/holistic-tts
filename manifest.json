@@ -22,7 +22,8 @@
     "service_worker": "background.js"
   },
   "host_permissions": [
-    "https://api.hume.ai/*"
+    "https://api.hume.ai/*",
+    "https://api.elevenlabs.io/*"
   ],
   "content_scripts": [
     {

@@ -62,4 +62,36 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }
     });
   }
+  // Handle ElevenLabs audio ready from background
+  else if (request.action === 'elevenAudioReady' && (request.audioBase64 || request.audioUrl)) {
+    let audioUrl = request.audioUrl;
+    if (request.audioBase64) {
+      // Convert base64 to Blob and create object URL
+      const byteChars = atob(request.audioBase64);
+      const byteNumbers = new Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) {
+        byteNumbers[i] = byteChars.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'audio/mpeg' });
+      audioUrl = URL.createObjectURL(blob);
+    }
+    console.log('[Holistic-TTS] playing ElevenLabs audio:', audioUrl);
+    const audio = new Audio(audioUrl);
+    // Apply saved playback speed
+    chrome.storage.sync.get('ttsSpeed', prefs => {
+      const speed = parseFloat(prefs.ttsSpeed) || 1.0;
+      audio.playbackRate = speed;
+      // Revoke URL after playback
+      audio.addEventListener('ended', () => {
+        URL.revokeObjectURL(audioUrl);
+      });
+      // Play with error handling
+      try {
+        audio.play();
+      } catch (err) {
+        console.error("[Holistic-TTS] audio playback failed:", err);
+      }
+    });
+  }
 });

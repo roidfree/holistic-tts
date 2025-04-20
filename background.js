@@ -8,6 +8,16 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+  // Inject content script into the page if not already loaded
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      files: ['content.js']
+    });
+  } catch (e) {
+    console.error('[Holistic-TTS] Failed to inject content script:', e);
+  }
+
   if (info.menuItemId === "read-selected-text" && info.selectionText) {
     // Fetch user TTS preferences
     const prefs = await getPrefs(["ttsService", "ttsVoiceURI"]);
@@ -29,6 +39,9 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       );
     } else if (ttsService === "humeAI") {
       handleHumeAIRequest(info.selectionText);
+      // Handle ElevenLabs
+    } else if (ttsService === "elevenLabs") {
+      handleElevenLabsRequest(info.selectionText);
     } else {
       // Future: handle other services
       console.warn(`[Holistic-TTS] Unsupported TTS service: ${ttsService}`);
@@ -104,5 +117,61 @@ async function handleHumeAIRequest(text) {
   } catch (err) {
     console.error("Hume TTS error:", err);
     // TODO: chrome.notifications.create or messaging for UI feedback
+  }
+}
+
+async function handleElevenLabsRequest(text) {
+  const { elevenLabsApiKey: apiKey, elevenLabsVoiceId: voiceId, ttsSpeed } =
+    await getPrefs(["elevenLabsApiKey", "elevenLabsVoiceId", "ttsSpeed"]);
+  if (!apiKey || !voiceId) return console.error("Missing ElevenLabs key or voice selection");
+  if (!text.trim()) return console.error("Empty text for ElevenLabs TTS");
+
+  try {
+    const resp = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "xi-api-key": apiKey
+      },
+      body: JSON.stringify({
+        text,
+        voice_settings: {
+          stability: 0.75,
+          similarity_boost: 0.75
+        }
+      })
+    });
+    if (!resp.ok) throw new Error(await resp.text());
+
+    // ElevenLabs returns binary audio (mp3)
+    const arrayBuffer = await resp.arrayBuffer();
+    const blob = new Blob([arrayBuffer], { type: "audio/mpeg" });
+    const base64 = btoa(
+      new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), "")
+    );
+
+    // Send to content script:
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const tabId = tabs[0]?.id;
+      if (!tabId) {
+        console.warn('[Holistic-TTS] No active tab found for ElevenLabs TTS.');
+        return;
+      }
+      chrome.tabs.sendMessage(
+        tabId,
+        {
+          action: "elevenAudioReady",
+          audioBase64: base64
+        },
+        (response) => {
+          if (chrome.runtime.lastError) {
+            console.warn('[Holistic-TTS] Could not send ElevenLabs audio to content script:', chrome.runtime.lastError.message);
+          }
+        }
+      );
+    });
+  } catch (err) {
+    console.error("ElevenLabs TTS error:", err);
+    // TODO: user‐facing notification
   }
 }

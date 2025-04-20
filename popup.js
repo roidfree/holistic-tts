@@ -31,12 +31,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const PREF_HUME_VOICE_ID = 'humeVoiceId'; // Placeholder for future Hume voice saving
     const PREF_API_KEY_HUME = 'humeApiKey';
     const PREF_API_KEY_ELEVEN = 'elevenLabsApiKey';
+    const PREF_ELEVEN_VOICE_ID = 'elevenLabsVoiceId';
 
     // --- Load Preferences ---
     function loadPreferences() {
         console.log("Loading preferences...");
         storage.get(
-            [PREF_SPEED, PREF_SERVICE, PREF_VOICE_URI, PREF_HUME_VOICE_ID, PREF_API_KEY_HUME, PREF_API_KEY_ELEVEN],
+            [PREF_SPEED, PREF_SERVICE, PREF_VOICE_URI, PREF_HUME_VOICE_ID, PREF_API_KEY_HUME, PREF_API_KEY_ELEVEN, PREF_ELEVEN_VOICE_ID],
             (result) => {
                 console.log("Loaded preferences:", result);
                 
@@ -54,6 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Set Voice (defer selection until voices are loaded for the selected service)
                 const savedVoiceURI = result[PREF_VOICE_URI];
                 const savedHumeVoiceId = result[PREF_HUME_VOICE_ID]; // Load Hume voice preference
+                const savedElevenVoiceId = result[PREF_ELEVEN_VOICE_ID];
 
                 // Set API Keys (update input fields if keys exist)
                 if (result[PREF_API_KEY_HUME]) {
@@ -64,7 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 // Now populate voices for the loaded service
-                populateVoiceList(savedVoiceURI, savedHumeVoiceId); // Pass saved URIs/IDs
+                populateVoiceList(savedVoiceURI, savedHumeVoiceId, savedElevenVoiceId); // Pass saved URIs/IDs including ElevenLabs
             }
         );
     }
@@ -81,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Voice List Handling ---
-    function populateVoiceList(savedVoiceURI = null, savedHumeVoiceId = null) {
+    function populateVoiceList(savedVoiceURI = null, savedHumeVoiceId = null, savedElevenVoiceId = null) {
         const selectedService = voiceServiceSelect.value;
 
         if (selectedService === 'webSpeech') {
@@ -117,10 +119,41 @@ document.addEventListener('DOMContentLoaded', () => {
             voiceSelect.disabled = true; // Disable selection for now
              // TODO: Potentially load saved Hume voices if we implement that feature
              // if (savedHumeVoiceId) voiceSelect.value = savedHumeVoiceId;
-        } else if (selectedService === 'elevenLabs'){
-            // TODO: Implement ElevenLabs voice loading
-            voiceSelect.innerHTML = '<option value="">ElevenLabs voices not loaded</option>';
-            voiceSelect.disabled = true;
+        } else if (selectedService === 'elevenLabs') {
+            voiceSelect.disabled = false;
+            voiceSelect.innerHTML = '<option>Loading ElevenLabs voices...</option>';
+            // Fetch ElevenLabs voices and populate
+            storage.get(PREF_API_KEY_ELEVEN, async (res) => {
+                const key = res[PREF_API_KEY_ELEVEN];
+                if (!key) {
+                    voiceSelect.innerHTML = '<option value="">Enter ElevenLabs API key above</option>';
+                    return;
+                }
+                try {
+                    const resp = await fetch('https://api.elevenlabs.io/v1/voices', {
+                        headers: { 'xi-api-key': key }
+                    });
+                    if (!resp.ok) throw new Error(await resp.text());
+                    const data = await resp.json();
+                    const voicesList = data.voices || [];
+                    voiceSelect.innerHTML = '';
+                    let found = false;
+                    voicesList.forEach(v => {
+                        const opt = document.createElement('option');
+                        opt.value = v.voice_id;
+                        opt.textContent = v.name;
+                        if (savedElevenVoiceId && v.voice_id === savedElevenVoiceId) { opt.selected = true; found = true; }
+                        voiceSelect.appendChild(opt);
+                    });
+                    if (!found && voiceSelect.options.length) {
+                        voiceSelect.options[0].selected = true;
+                        savePreference(PREF_ELEVEN_VOICE_ID, voiceSelect.value);
+                    }
+                } catch (err) {
+                    console.error('Failed to load ElevenLabs voices:', err);
+                    voiceSelect.innerHTML = '<option value="">Error loading voices</option>';
+                }
+            });
         } else {
              voiceSelect.innerHTML = '<option value="">Select service first</option>';
              voiceSelect.disabled = true;
@@ -220,9 +253,76 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (selectedService === 'humeAI') {
             speakWithHumeAI(text);
         } else if (selectedService === 'elevenLabs') {
-            alert('ElevenLabs service playback not yet implemented.');
-            // TODO: Call speakWithElevenLabs(text);
+            speakWithElevenLabs(text);
         }
+
+// --- ElevenLabs Synthesis Function ---
+async function speakWithElevenLabs(text) {
+    storage.get([PREF_API_KEY_ELEVEN, PREF_ELEVEN_VOICE_ID, PREF_SPEED], async (result) => {
+        const apiKey = result[PREF_API_KEY_ELEVEN];
+        const voiceId = result[PREF_ELEVEN_VOICE_ID] || voiceSelect.value;
+        const speed = parseFloat(result[PREF_SPEED]) || 1.0;
+        if (!apiKey) {
+            alert('ElevenLabs API Key not set. Please set it in the options.');
+            updateUIForService('elevenLabs');
+            apiKeyInput.focus();
+            return;
+        }
+        if (!voiceId) {
+            alert('Please select a voice for ElevenLabs.');
+            return;
+        }
+        if (!text || !text.trim()) {
+            alert('Please enter some text to speak.');
+            return;
+        }
+        playButton.disabled = true;
+        downloadButton.disabled = true;
+        try {
+            const resp = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'xi-api-key': apiKey
+                    },
+                    body: JSON.stringify({
+                        text,
+                        voice_settings: {
+                            stability: 0.75,
+                            similarity_boost: 0.75
+                        }
+                    })
+                }
+            );
+            if (!resp.ok) throw new Error(await resp.text());
+            const arrayBuffer = await resp.arrayBuffer();
+            const blob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
+            const url = URL.createObjectURL(blob);
+            // Play audio
+            stopAllPlayback();
+            apiAudioPlayer.src = url;
+            apiAudioPlayer.playbackRate = speed;
+            apiAudioPlayer.play();
+            currentApiAudioBlob = blob;
+            currentApiAudioUrl = url;
+            downloadButton.disabled = false;
+            playButton.disabled = true;
+            apiAudioPlayer.onended = () => {
+                playButton.disabled = false;
+                downloadButton.disabled = false;
+                URL.revokeObjectURL(url);
+                currentApiAudioUrl = null;
+                currentApiAudioBlob = null;
+            };
+        } catch (error) {
+            console.error('Error during ElevenLabs synthesis:', error);
+            alert(`Failed to synthesize speech with ElevenLabs: ${error.message}`);
+            playButton.disabled = false;
+            downloadButton.disabled = true;
+        }
+    });
+}
     });
 
     // Pause Button
@@ -265,6 +365,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // URL.revokeObjectURL(currentApiAudioUrl);
         // currentApiAudioUrl = null;
         // currentApiAudioBlob = null;
+        downloadButton.disabled = true; // Disable download
+        playButton.disabled = false; // Re-enable play button
     });
 
     // Voice Service Selection Change
@@ -290,6 +392,9 @@ document.addEventListener('DOMContentLoaded', () => {
          } else if (selectedService === 'humeAI') {
              // If we implement Hume voice selection, save PREF_HUME_VOICE_ID here
              // savePreference(PREF_HUME_VOICE_ID, voiceSelect.value);
+         } else if (selectedService === 'elevenLabs') {
+             // Save selected ElevenLabs voice ID
+             savePreference(PREF_ELEVEN_VOICE_ID, voiceSelect.value);
          }
     });
 
