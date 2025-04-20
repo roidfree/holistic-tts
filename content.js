@@ -7,42 +7,25 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('[Holistic-TTS] onMessage received:', request);
 
   if (request.action === 'readSelection' && request.text) {
-    // Fetch user preferences
-    chrome.storage.sync.get(['ttsSpeed', 'ttsVoiceURI', 'ttsService'], prefs => {
-      console.log('[Holistic-TTS] TTS service:', prefs.ttsService);
-
-      // --- Web Speech API path ---
-      if (!prefs.ttsService || prefs.ttsService === 'webSpeech') {
-        const speakWebSpeech = () => {
-          const utter = new SpeechSynthesisUtterance(request.text);
-          utter.rate = parseFloat(prefs.ttsSpeed) || 1.0;
-
-          // Use saved voice if available
-          const voices = speechSynthesis.getVoices();
-          const match = voices.find(v => v.voiceURI === prefs.ttsVoiceURI);
-          if (match) utter.voice = match;
-
-          speechSynthesis.speak(utter);
-          // Clean up voiceschanged listener
-          speechSynthesis.onvoiceschanged = null;
-        };
-
-        if (speechSynthesis.getVoices().length) {
-          speakWebSpeech();
-        } else {
-          speechSynthesis.onvoiceschanged = speakWebSpeech;
-        }
-      }
-      // --- Hume AI path ---
-      else if (prefs.ttsService === 'humeAI') {
-        chrome.runtime.sendMessage({ action: 'speakWithHumeAI', text: request.text });
-      }
-      // --- ElevenLabs placeholder ---
-      else if (prefs.ttsService === 'elevenLabs') {
-        chrome.runtime.sendMessage({ action: 'speakWithElevenLabs', text: request.text });
-      }
-    });
-
+    // Use Web Speech API directly, using provided voiceURI if present
+    const speakWebSpeech = (voiceURI) => {
+      const utter = new SpeechSynthesisUtterance(request.text);
+      // Fetch speed from storage (or default)
+      chrome.storage.sync.get(['ttsSpeed'], prefs => {
+        utter.rate = parseFloat(prefs.ttsSpeed) || 1.0;
+        // Use provided voiceURI if present, otherwise use saved
+        const voices = speechSynthesis.getVoices();
+        const match = voices.find(v => v.voiceURI === (request.voiceURI || null));
+        if (match) utter.voice = match;
+        speechSynthesis.speak(utter);
+        speechSynthesis.onvoiceschanged = null;
+      });
+    };
+    if (speechSynthesis.getVoices().length) {
+      speakWebSpeech(request.voiceURI);
+    } else {
+      speechSynthesis.onvoiceschanged = () => speakWebSpeech(request.voiceURI);
+    }
   }
   // Handle Hume AI audio ready from background
   else if (request.action === 'humeAudioReady' && (request.audioBase64 || request.audioUrl)) {

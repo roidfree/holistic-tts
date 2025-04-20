@@ -7,9 +7,32 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
-chrome.contextMenus.onClicked.addListener((info, tab) => {
+chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId === "read-selected-text" && info.selectionText) {
-    handleHumeAIRequest(info.selectionText);
+    // Fetch user TTS preferences
+    const prefs = await getPrefs(["ttsService", "ttsVoiceURI"]);
+    const ttsService = prefs.ttsService || "webSpeech";
+    if (ttsService === "webSpeech") {
+      // Send to content script for Web Speech API
+      chrome.tabs.sendMessage(
+        tab.id,
+        {
+          action: "readSelection",
+          text: info.selectionText,
+          voiceURI: prefs.ttsVoiceURI || null
+        },
+        (response) => {
+          if (chrome.runtime.lastError) {
+            console.warn('[Holistic-TTS] Could not send Web Speech TTS request to content script:', chrome.runtime.lastError.message);
+          }
+        }
+      );
+    } else if (ttsService === "humeAI") {
+      handleHumeAIRequest(info.selectionText);
+    } else {
+      // Future: handle other services
+      console.warn(`[Holistic-TTS] Unsupported TTS service: ${ttsService}`);
+    }
   }
 });
 
