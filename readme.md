@@ -1,73 +1,131 @@
-# HolisticTTS
+# 🎙️ HolisticTTS – Browser Extension for Natural Text-to-Speech
 
-Transform your reading experience with HolisticTTS, the Microsoft Edge extension that brings your text to life with a variety of engaging voices.
-
-Reading large blocks of text can be daunting, especially for those with ADHD. HolisticTTS offers a solution by letting you choose from a range of natural, human-like voices powered by cutting-edge AI services like ElevenLabs. This not only makes the content more engaging but also reduces the friction of reading, turning a once tedious task into an enjoyable experience. Whether you're studying, working, or just browsing, HolisticTTS helps keep you focused and entertained by activating more of your senses.
-
----
-
-A versatile, modern text-to-speech (TTS) browser extension for Microsoft Edge (and compatible browsers) that supports multiple voice services and convenient features for reading text and PDFs aloud.
-
-## Features
-
-- **Multiple Voice Services:**
-  - **Web Speech API**: Uses built-in browser voices for instant TTS.
-  - **Hume AI**: Connect your Hume AI API key for advanced neural voices.
-  - **ElevenLabs**: (Planned) Support for ElevenLabs API voices.
-- **PDF Support:** Upload a PDF and have its text read aloud (using [pdf.js](https://mozilla.github.io/pdf.js/)).
-- **Context Menu:** Right-click selected text on any webpage and choose "Read Selected Text with Holistic-TTS" for instant playback.
-- **Customizable Playback:** Adjust voice, speed, and service. Download generated audio (for API-based voices).
-- **Screen Snippet Capture:** Capture and read text from a screen snippet (planned/experimental).
-- **Persistent Preferences:** Remembers your last-used service, voice, and speed.
-
-## Installation
-
-1. **Clone or Download** this repository.
-2. In Edge (or Chrome):
-    - Go to `edge://extensions` (or `chrome://extensions`).
-    - Enable "Developer mode".
-    - Click "Load unpacked" and select this project folder.
-3. The Holistic-TTS icon should appear in your browser toolbar.
-
-## Usage
-
-1. Click the Holistic-TTS icon to open the popup.
-2. Enter or paste text, or upload a PDF.
-3. Select your preferred voice service and voice.
-4. Adjust speed if desired.
-5. Click **Play** to listen, **Pause/Stop** as needed.
-6. (Optional) Download the audio (API voices only).
-
-### Using API Voices
-- For **Hume AI** or **ElevenLabs** (when available), paste your API key in the provided field and click "Save Key".
-- Some features (like download) are only available for API-based voices.
-
-### Context Menu
-- Select any text on a webpage, right-click, and choose "Read Selected Text with Holistic-TTS".
-
-## Supported Browsers
-- Microsoft Edge (fully supported)
-- Google Chrome (should work, but tested primarily on Edge)
-
-## File Overview
-- `manifest.json` — Extension manifest (MV3)
-- `popup.html` — Main popup UI (Tailwind CSS)
-- `popup.js` — All popup logic, TTS handling, API calls, PDF parsing, etc.
-- `background.js` — Handles context menu and background tasks
-- `content.js` — For future content script features
-- `pdf.js` / `pdf.worker.js` — PDF parsing (via pdf.js)
-- `icons/` — Extension icons
-
-## Roadmap / TODO
-- ElevenLabs API integration
-- Improved PDF text extraction
-- OCR for screen snippets
-- More advanced voice settings
-- Options/settings page
-
-## License
-MIT License
+**Transform your reading experience with engaging, natural-sounding voices.**  
+_HolisticTTS is a Microsoft Edge extension designed to reduce reading friction—perfect for students, professionals, and particularly helpful for users with ADHD._
 
 ---
 
-**Holistic-TTS** is not affiliated with Hume AI, ElevenLabs, or any other TTS provider. API keys are stored only in your browser's extension storage.
+## 🚀 Key Features
+
+- 🌐 **Multiple Voice Services**
+  - **Web Speech API**: Instantly available, offline support in your browser.
+  - **Hume AI**: Emotionally expressive, high-quality neural voices.
+  - **ElevenLabs**: Realistic voices, multilingual support, and custom voice cloning.
+
+- 📚 **PDF Support**
+  - Upload PDFs to have HolisticTTS read them aloud for easy studying or document review.
+
+- 🖱️ **Context Menu Integration**
+  - Right-click selected text on any webpage to instantly hear it read aloud.
+
+- 🎛️ **Customizable Playback**
+  - Adjust voice selection, speech speed, and choose your preferred TTS service.
+  - Download audio files (available for API-based voices).
+
+- 📸 **Screen Snippet Capture (experimental)**
+  - Capture and instantly read text snippets from your screen (OCR integration coming soon).
+
+- 🔒 **Persistent Preferences**
+  - Remembers your last-used voice, speed, and preferred service automatically.
+
+---
+
+## 🛠️ Installation
+
+1. **Clone or download** the repository:
+
+    ```bash
+    git clone https://github.com/your-username/holistic-tts.git
+    ```
+
+2. In **Microsoft Edge** (or Chrome):
+    - Navigate to `edge://extensions` (or `chrome://extensions`).
+    - Enable **Developer mode**.
+    - Click **"Load unpacked"** and select your downloaded repository folder.
+
+3. The HolisticTTS icon will appear in your browser's toolbar. 🎉
+
+---
+
+## 🔑 Acquiring Your API Key
+
+To utilize advanced neural voices (Hume AI or ElevenLabs), you’ll need to set up API keys.
+
+### 🧠 Hume AI API Key
+
+1. Sign up at [Hume AI](https://hume.ai).
+2. Visit your dashboard and locate the **API Keys** section.
+3. Generate an API key, copy it, and paste it into the HolisticTTS extension under:
+   - **Voice Service → Hume AI → API Key**
+
+### 🔈 ElevenLabs API Key
+
+1. Create an account at [ElevenLabs](https://elevenlabs.io).
+2. Go to your **Profile → API** tab.
+3. Generate a new API key, copy it, and paste it into HolisticTTS settings:
+   - **Voice Service → ElevenLabs → API Key**
+
+---
+
+## 🚦 Quick Start
+
+1. Click the HolisticTTS icon in your browser toolbar.
+2. Paste or type text (or upload a PDF).
+3. Select your TTS service, voice, and preferred speed.
+4. Click **Play** ▶️ and enjoy hands-free listening!
+
+---
+
+## 🎧 Downloading Audio (Premium Voices)
+
+Audio generated via **Hume AI** or **ElevenLabs** can be directly downloaded from the extension popup—great for podcasts, audiobooks, or offline listening.
+
+---
+
+## 🌟 Supported Browsers
+
+- ✅ **Microsoft Edge** (Fully Supported)
+- ✅ **Google Chrome** (Tested, Compatible)
+
+---
+
+## 💖 Support & Contribute
+
+- Found this helpful? Consider starring ⭐ the repository.
+- **Pull requests**, **issues**, and **feature suggestions** are warmly welcomed!
+
+---
+
+## 📂 Project Structure
+
+holistic-tts/
+├── background.js # Handles context menus & background tasks
+├── content.js # Injected content script for page interaction
+├── manifest.json # Extension manifest (MV3)
+├── popup.html # Main UI of the extension
+├── popup.js # Popup logic (voices, API calls, PDF handling)
+├── pdf.js # PDF text extraction (via pdf.js)
+├── pdf.worker.js # PDF.js worker script
+├── icons/ # Extension icons 
+└── README.md # Project overview (this file)
+
+---
+
+## 🗓️ Roadmap
+
+Upcoming features planned:
+
+- ✅ Improved PDF text extraction
+- ⏳ OCR support for screen snippet capture
+- ⏳ More advanced voice customization settings
+- ⏳ Dedicated options/settings page
+
+---
+
+## 📄 License
+
+MIT License – see the [`LICENSE`](LICENSE) file for details.
+
+---
+
+**HolisticTTS** is not affiliated with Hume AI or ElevenLabs. All API keys remain securely stored locally in your browser extension storage.
