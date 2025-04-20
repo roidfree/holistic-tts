@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Holistic-TTS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- If needed, link to a custom popup.css for styles not covered by Tailwind -->
+    <!-- <link href="popup.css" rel="stylesheet"> -->
+    <style>
+        /* Set a fixed size for the popup */
+        body {
+            width: 400px;
+            height: auto; /* Adjust height as needed */
+            min-height: 300px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-4 font-sans">
+    <div class="container mx-auto">
+        <h1 class="text-xl font-bold mb-4 text-center text-gray-700">Holistic-TTS</h1>
+
+        <!-- Text Input Area -->
+        <div class="mb-4">
+            <label for="text-input" class="block text-sm font-medium text-gray-600 mb-1">Enter text to read:</label>
+            <textarea id="text-input" rows="4" class="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" placeholder="Paste or type text here..."></textarea>
+        </div>
+
+        <!-- Playback Controls -->
+        <div class="flex justify-center space-x-2 mb-4">
+            <button id="play-button" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">Play</button>
+            <button id="pause-button" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded">Pause</button>
+            <button id="stop-button" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded">Stop</button>
+            <button id="download-button" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded" title="Download as MP3 (Premium only)">Download</button>
+        </div>
+
+        <!-- Settings -->
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+                <label for="speed-slider" class="block text-sm font-medium text-gray-600">Speed (<span id="speed-label">1.0</span>x):</label>
+                <input type="range" id="speed-slider" min="0.5" max="2.0" step="0.1" value="1.0" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
+            </div>
+            <div>
+                <label for="voice-service" class="block text-sm font-medium text-gray-600">Voice Service:</label>
+                <select id="voice-service" class="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                    <option value="webSpeech">Web Speech API</option>
+                    <option value="humeAI">Hume AI</option>
+                    <option value="elevenLabs">ElevenLabs</option>
+                </select>
+            </div>
+        </div>
+
+         <!-- Voice Selection (Dynamically Populated) -->
+        <div class="mb-4">
+            <label for="voice-select" class="block text-sm font-medium text-gray-600">Voice:</label>
+            <select id="voice-select" class="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                <option value="">Loading voices...</option> 
+            </select>
+        </div>
+
+        <!-- API Key Input (Initially Hidden/Managed) -->
+        <div id="api-key-section" class="mb-4 hidden">
+            <label for="api-key-input" id="api-key-label" class="block text-sm font-medium text-gray-600 mb-1">API Key:</label>
+            <input type="password" id="api-key-input" class="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" placeholder="Enter your API key">
+            <button id="save-api-key" class="mt-2 bg-gray-500 hover:bg-gray-600 text-white font-bold py-1 px-3 rounded text-sm">Save Key</button>
+        </div>
+
+        <!-- PDF Upload -->
+        <div class="mb-4">
+             <label for="pdf-upload" class="block text-sm font-medium text-gray-600 mb-1">Or upload PDF:</label>
+             <input type="file" id="pdf-upload" accept=".pdf" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
+        </div>
+
+        <!-- Snippet Capture Button -->
+        <div class="text-center">
+            <button id="snippet-button" class="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded">Capture Screen Snippet</button>
+        </div>
+
+    </div>
+
+    <!-- Hidden Audio Player for API playback -->
+    <audio id="api-audio-player" style="display: none;"></audio>
+
+    <script src="popup.js"></script>
+</body>
+</html> 
