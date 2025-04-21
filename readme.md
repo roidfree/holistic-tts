@@ -98,16 +98,19 @@ Audio generated via **Hume AI** or **ElevenLabs** can be directly downloaded fro
 
 ## 📂 Project Structure
 
+```
 holistic-tts/
-├── background.js # Handles context menus & background tasks
-├── content.js # Injected content script for page interaction
-├── manifest.json # Extension manifest (MV3)
-├── popup.html # Main UI of the extension
-├── popup.js # Popup logic (voices, API calls, PDF handling)
-├── pdf.js # PDF text extraction (via pdf.js)
-├── pdf.worker.js # PDF.js worker script
-├── icons/ # Extension icons 
-└── README.md # Project overview (this file)
+├── background.js       # Handles context menus & background tasks
+├── content.js          # Injected content script for page interaction
+├── manifest.json       # Extension manifest (MV3)
+├── popup.html          # Main UI of the extension
+├── popup.js            # Popup logic (voices, API calls, PDF handling)
+├── pdf.js              # PDF text extraction (via pdf.js)
+├── pdf.worker.js       # PDF.js worker script
+├── icons/              # Extension icons
+└── README.md           # Project overview (this file)
+```
+
 
 ---
 
