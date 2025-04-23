@@ -239,12 +239,12 @@ document.addEventListener('DOMContentLoaded', () => {
         stopAllPlayback(); // Stop anything currently playing
 
         if (selectedService === 'webSpeech') {
-            // Instead of speaking here, send a message to the content script to read the selection
+            // Send the entered text to the content script for Web Speech API
             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                 if (tabs[0].id) {
                     chrome.tabs.sendMessage(
                         tabs[0].id,
-                        { action: 'readSelection', voiceURI: voiceSelect.value },
+                        { action: 'readSelection', voiceURI: voiceSelect.value, text: text },
                         () => {} // Optional callback
                     );
                 }
